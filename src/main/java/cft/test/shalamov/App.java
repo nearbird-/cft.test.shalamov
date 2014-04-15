@@ -29,10 +29,54 @@ import cft.test.shalamov.job.JobServer;
  */
 public class App {
 
-	enum Arguments {port, pool};
-	
 	static Integer 	socketServerPort = 1337,
 					workerPoolSize = 4;
+	
+	
+	/**
+	 * 
+	 * @author Shalamov
+	 *
+	 * Handles connections
+	 *
+	 */
+	private class Connection implements Runnable {
+
+		private Socket socket;
+		private JobServer server;
+		
+		public Connection(JobServer server, Socket socket) {
+			this.socket = socket;
+			this.server = server;
+		}
+		
+		@Override
+		public void run() {
+			try {
+				BufferedReader reader = new BufferedReader(
+						new InputStreamReader(socket.getInputStream()
+				));
+				while(true) {
+					String group = reader.readLine();
+					try {
+						server.doJob(new Job(Integer.valueOf(group)));
+					} catch (NumberFormatException e) {
+						
+					} catch (RuntimeException e) {
+						System.out.print(e.getMessage());
+					}
+				}
+			} catch (IOException e) {
+				
+			} finally {
+				if (!socket.isClosed()) {
+					try { socket.close(); } catch (IOException e) {}
+				}
+			}
+		}
+		
+	}
+
 	
 	/**
 	 * @param args
@@ -71,7 +115,7 @@ public class App {
 					clientSocket = socketServer.accept();
 
 					//free current Thread for new connections 
-					new Thread(new Task(jobServer, clientSocket)).start();
+					new Thread(new Connection(jobServer, clientSocket)).start();
 				} catch (IOException e) {
 					if (!socketServer.isClosed())
 						socketServer.close();
@@ -87,39 +131,3 @@ public class App {
 	}
 }
 
-class Task implements Runnable {
-
-	private Socket socket;
-	private JobServer server;
-	
-	public Task(JobServer server, Socket socket) {
-		this.socket = socket;
-		this.server = server;
-	}
-	
-	@Override
-	public void run() {
-		try {
-			BufferedReader reader = new BufferedReader(
-					new InputStreamReader(socket.getInputStream()
-			));
-			while(true) {
-				String group = reader.readLine();
-				try {
-					server.doJob(new Job(Integer.valueOf(group)));
-				} catch (NumberFormatException e) {
-					
-				} catch (RuntimeException e) {
-					System.out.print(e.getMessage());
-				}
-			}
-		} catch (IOException e) {
-			
-		} finally {
-			if (!socket.isClosed()) {
-				try { socket.close(); } catch (IOException e) {}
-			}
-		}
-	}
-	
-}
