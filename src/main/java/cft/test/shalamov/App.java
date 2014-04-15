@@ -40,7 +40,7 @@ public class App {
 	 * Handles connections
 	 *
 	 */
-	private class Connection implements Runnable {
+	private static class Connection implements Runnable {
 
 		private Socket socket;
 		private JobServer server;
